@@ -1,16 +1,11 @@
-"""
-Vendor-agnostic domain models for the LLM Orchestrator.
-
-Nothing in this file may import an SDK (openai, anthropic, httpx, etc).
-Adapters are responsible for translating these into/from vendor payloads.
-"""
-
 from __future__ import annotations
 
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from src.domain.tools import ToolCall, ToolDefinition
 
 
 class Role(str, Enum):
@@ -24,7 +19,11 @@ class Message(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     role: Role
-    content: str
+    content: str = ""
+    # Optional fields for tool interaction turns
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+    tool_call_id: str | None = None
+    name: str | None = None
 
 
 class CompletionRequest(BaseModel):
@@ -38,6 +37,7 @@ class CompletionRequest(BaseModel):
     max_tokens: int = Field(default=1024, gt=0)
     stop_sequences: list[str] = Field(default_factory=list)
     stream: bool = False
+    tools: list[ToolDefinition] = Field(default_factory=list)
     # Free-form provider-specific overrides. Adapters may read this, but
     # orchestrator/domain code must never depend on its contents.
     provider_options: dict[str, Any] = Field(default_factory=dict)
@@ -58,6 +58,7 @@ class FinishReason(str, Enum):
     STOP = "stop"
     LENGTH = "length"
     CONTENT_FILTER = "content_filter"
+    TOOL_CALLS = "tool_calls"
     ERROR = "error"
 
 
@@ -71,6 +72,7 @@ class CompletionResponse(BaseModel):
     provider: str
     model: str
     request_id: str
+    tool_calls: list[ToolCall] = Field(default_factory=list)
 
 
 class StreamChunk(BaseModel):
@@ -81,4 +83,6 @@ class StreamChunk(BaseModel):
     finish_reason: FinishReason | None = None
     # Populated only on the final chunk, once usage is known.
     token_usage: TokenUsage | None = None
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+
 

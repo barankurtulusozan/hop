@@ -22,21 +22,6 @@ from src.domain.models import (
 
 
 class MockAdapter(LLMProvider):
-    """
-    `failure_script` lets a test declare a scripted sequence of outcomes, e.g.:
-
-        MockAdapter(failure_script=[
-            lambda: (_ for _ in ()).throw(RateLimitExceeded(provider="mock")),
-            lambda: (_ for _ in ()).throw(RateLimitExceeded(provider="mock")),
-            None,  # third call succeeds
-        ])
-
-    Each call to `complete`/`stream` pops the next scripted outcome. `None`
-    means "succeed normally". Once the script is exhausted, calls always
-    succeed. This is what lets the integration test prove real backoff+retry
-    recovery without a live vendor endpoint.
-    """
-
     name = "mock"
 
     def __init__(
@@ -44,10 +29,12 @@ class MockAdapter(LLMProvider):
         failure_script: list[Callable[[], None] | None] | None = None,
         response_content: str = "mock completion",
         latency_ms: float = 5.0,
+        scripted_responses: list[CompletionResponse] | None = None,
     ):
         self._script = list(failure_script or [])
         self._response_content = response_content
         self._latency_ms = latency_ms
+        self._scripted_responses = list(scripted_responses or [])
         self.call_count = 0
 
     def _consume_script(self) -> None:
@@ -61,6 +48,10 @@ class MockAdapter(LLMProvider):
         start = time.perf_counter()
         self._consume_script()
         elapsed_ms = (time.perf_counter() - start) * 1000 + self._latency_ms
+
+        if self._scripted_responses:
+            return self._scripted_responses.pop(0)
+
         return CompletionResponse(
             content=self._response_content,
             token_usage=TokenUsage(prompt_tokens=10, completion_tokens=5),

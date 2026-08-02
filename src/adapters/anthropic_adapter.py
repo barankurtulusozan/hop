@@ -23,11 +23,13 @@ from src.domain.models import (
     StreamChunk,
     TokenUsage,
 )
+from src.domain.tools import ToolCall
 
 _FINISH_REASON_MAP = {
     "end_turn": FinishReason.STOP,
     "stop_sequence": FinishReason.STOP,
     "max_tokens": FinishReason.LENGTH,
+    "tool_use": FinishReason.TOOL_CALLS,
 }
 
 
@@ -43,13 +45,50 @@ class AnthropicAdapter(LLMProvider):
     def _split_system(self, request: CompletionRequest) -> tuple[str | None, list[dict]]:
         """Anthropic takes `system` as a top-level field, not a message role."""
         system_parts = [m.content for m in request.messages if m.role == Role.SYSTEM]
-        turns = [
-            {"role": m.role.value, "content": m.content}
-            for m in request.messages
-            if m.role != Role.SYSTEM
-        ]
+        turns = []
+        for m in request.messages:
+            if m.role == Role.SYSTEM:
+                continue
+            if m.role == Role.TOOL:
+                turns.append({
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": m.tool_call_id or "",
+                            "content": m.content,
+                        }
+                    ],
+                })
+            elif m.role == Role.ASSISTANT and m.tool_calls:
+                content_blocks = []
+                if m.content:
+                    content_blocks.append({"type": "text", "text": m.content})
+                for tc in m.tool_calls:
+                    content_blocks.append({
+                        "type": "tool_use",
+                        "id": tc.call_id,
+                        "name": tc.tool_name,
+                        "input": tc.arguments,
+                    })
+                turns.append({"role": "assistant", "content": content_blocks})
+            else:
+                turns.append({"role": m.role.value, "content": m.content})
+
         system = "\n".join(system_parts) if system_parts else None
         return system, turns
+
+    def _to_anthropic_tools(self, request: CompletionRequest) -> list[dict] | None:
+        if not request.tools:
+            return None
+        return [
+            {
+                "name": t.name,
+                "description": t.description,
+                "input_schema": t.parameters_schema,
+            }
+            for t in request.tools
+        ]
 
     def _translate_error(self, exc: Exception) -> Exception:
         if isinstance(exc, AnthropicRateLimitError):
@@ -74,20 +113,33 @@ class AnthropicAdapter(LLMProvider):
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         start = time.perf_counter()
         system, turns = self._split_system(request)
+        kwargs = {
+            "model": request.model,
+            "system": system,
+            "messages": turns,
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stop_sequences": request.stop_sequences or None,
+        }
+        tools_payload = self._to_anthropic_tools(request)
+        if tools_payload:
+            kwargs["tools"] = tools_payload
+
         try:
-            resp = await self._client.messages.create(
-                model=request.model,
-                system=system,
-                messages=turns,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                stop_sequences=request.stop_sequences or None,
-            )
+            resp = await self._client.messages.create(**kwargs)
         except Exception as exc:  # noqa: BLE001
             raise self._translate_error(exc) from exc
 
         latency_ms = (time.perf_counter() - start) * 1000
         text = "".join(block.text for block in resp.content if getattr(block, "type", None) == "text")
+
+        extracted_tool_calls: list[ToolCall] = []
+        for block in resp.content:
+            if getattr(block, "type", None) == "tool_use":
+                extracted_tool_calls.append(
+                    ToolCall(call_id=block.id, tool_name=block.name, arguments=block.input or {})
+                )
+
         return CompletionResponse(
             content=text,
             token_usage=TokenUsage(
@@ -99,19 +151,25 @@ class AnthropicAdapter(LLMProvider):
             provider=self.name,
             model=resp.model,
             request_id=resp.id or str(uuid.uuid4()),
+            tool_calls=extracted_tool_calls,
         )
 
     async def stream(self, request: CompletionRequest) -> AsyncIterable[StreamChunk]:
         system, turns = self._split_system(request)
+        kwargs = {
+            "model": request.model,
+            "system": system,
+            "messages": turns,
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stop_sequences": request.stop_sequences or None,
+        }
+        tools_payload = self._to_anthropic_tools(request)
+        if tools_payload:
+            kwargs["tools"] = tools_payload
+
         try:
-            async with self._client.messages.stream(
-                model=request.model,
-                system=system,
-                messages=turns,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                stop_sequences=request.stop_sequences or None,
-            ) as stream:
+            async with self._client.messages.stream(**kwargs) as stream:
                 async for event in stream:
                     if event.type == "content_block_delta" and getattr(event.delta, "text", None):
                         yield StreamChunk(delta=event.delta.text, is_final=False)

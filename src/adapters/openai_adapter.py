@@ -8,6 +8,7 @@ exception hierarchy before it can propagate to the orchestrator.
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from typing import AsyncIterable
@@ -21,14 +22,17 @@ from src.domain.models import (
     CompletionRequest,
     CompletionResponse,
     FinishReason,
+    Role,
     StreamChunk,
     TokenUsage,
 )
+from src.domain.tools import ToolCall
 
 _FINISH_REASON_MAP = {
     "stop": FinishReason.STOP,
     "length": FinishReason.LENGTH,
     "content_filter": FinishReason.CONTENT_FILTER,
+    "tool_calls": FinishReason.TOOL_CALLS,
 }
 
 
@@ -36,9 +40,6 @@ class OpenAIAdapter(LLMProvider):
     name = "openai"
 
     def __init__(self, credentials: ProviderCredentials):
-        # `reveal()` is called exactly once, right here, to hand the raw key
-        # to the vendor SDK's own transport layer. It is never stored,
-        # logged, or passed through domain code again.
         self._client = AsyncOpenAI(
             api_key=credentials.reveal(),
             organization=credentials.organization_id,
@@ -46,7 +47,46 @@ class OpenAIAdapter(LLMProvider):
         )
 
     def _to_openai_messages(self, request: CompletionRequest) -> list[dict]:
-        return [{"role": m.role.value, "content": m.content} for m in request.messages]
+        formatted = []
+        for m in request.messages:
+            if m.role == Role.TOOL:
+                formatted.append({
+                    "role": "tool",
+                    "tool_call_id": m.tool_call_id or "",
+                    "content": m.content,
+                })
+            elif m.role == Role.ASSISTANT and m.tool_calls:
+                msg = {"role": "assistant", "content": m.content or None}
+                msg["tool_calls"] = [
+                    {
+                        "id": tc.call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.tool_name,
+                            "arguments": json.dumps(tc.arguments),
+                        },
+                    }
+                    for tc in m.tool_calls
+                ]
+                formatted.append(msg)
+            else:
+                formatted.append({"role": m.role.value, "content": m.content})
+        return formatted
+
+    def _to_openai_tools(self, request: CompletionRequest) -> list[dict] | None:
+        if not request.tools:
+            return None
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": t.parameters_schema,
+                },
+            }
+            for t in request.tools
+        ]
 
     def _translate_error(self, exc: Exception) -> Exception:
         if isinstance(exc, OpenAIRateLimitError):
@@ -70,20 +110,37 @@ class OpenAIAdapter(LLMProvider):
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         start = time.perf_counter()
+        kwargs = {
+            "model": request.model,
+            "messages": self._to_openai_messages(request),
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stop": request.stop_sequences or None,
+        }
+        tools_payload = self._to_openai_tools(request)
+        if tools_payload:
+            kwargs["tools"] = tools_payload
+
         try:
-            resp = await self._client.chat.completions.create(
-                model=request.model,
-                messages=self._to_openai_messages(request),
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                stop=request.stop_sequences or None,
-            )
-        except Exception as exc:  # noqa: BLE001 -- intentionally broad, translated below
+            resp = await self._client.chat.completions.create(**kwargs)
+        except Exception as exc:  # noqa: BLE001
             raise self._translate_error(exc) from exc
 
         latency_ms = (time.perf_counter() - start) * 1000
         choice = resp.choices[0]
         usage = resp.usage
+
+        extracted_tool_calls: list[ToolCall] = []
+        if getattr(choice.message, "tool_calls", None):
+            for tc in choice.message.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                except json.JSONDecodeError:
+                    args = {}
+                extracted_tool_calls.append(
+                    ToolCall(call_id=tc.id, tool_name=tc.function.name, arguments=args)
+                )
+
         return CompletionResponse(
             content=choice.message.content or "",
             token_usage=TokenUsage(
@@ -95,19 +152,25 @@ class OpenAIAdapter(LLMProvider):
             provider=self.name,
             model=resp.model,
             request_id=resp.id or str(uuid.uuid4()),
+            tool_calls=extracted_tool_calls,
         )
 
     async def stream(self, request: CompletionRequest) -> AsyncIterable[StreamChunk]:
+        kwargs = {
+            "model": request.model,
+            "messages": self._to_openai_messages(request),
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stop": request.stop_sequences or None,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        tools_payload = self._to_openai_tools(request)
+        if tools_payload:
+            kwargs["tools"] = tools_payload
+
         try:
-            stream = await self._client.chat.completions.create(
-                model=request.model,
-                messages=self._to_openai_messages(request),
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                stop=request.stop_sequences or None,
-                stream=True,
-                stream_options={"include_usage": True},
-            )
+            stream = await self._client.chat.completions.create(**kwargs)
             accumulated_usage: TokenUsage | None = None
             async for chunk in stream:
                 if getattr(chunk, "usage", None) is not None and chunk.usage:
