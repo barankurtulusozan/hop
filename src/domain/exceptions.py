@@ -112,3 +112,26 @@ class WorkflowException(AgentException):
         super().__init__(message, retryable=False)
 
 
+class ObservabilityException(LLMException):
+    """Base exception for tracing, cost guardrails, and telemetry errors."""
+
+    def __init__(self, message: str = "Observability error", *, provider: str | None = None, retryable: bool = False):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class CostBudgetExceeded(ObservabilityException):
+    """Raised when tenant/user daily dollar budget or per-minute token rate limit is breached."""
+
+    def __init__(self, message: str = "Cost budget exceeded", *, tenant_id: str | None = None):
+        super().__init__(message, retryable=False)
+        self.tenant_id = tenant_id
+
+
+class SafetyViolationError(ObservabilityException):
+    """Raised when prompt injection or toxic content violates safety guardrails."""
+
+    def __init__(self, message: str = "Safety policy violation"):
+        super().__init__(message, retryable=False)
+
+
+
