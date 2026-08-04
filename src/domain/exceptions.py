@@ -61,3 +61,32 @@ class RetryBudgetExhausted(LLMException):
         super().__init__(message, provider=provider, retryable=False)
         self.attempts = attempts
         self.last_error = last_error
+
+
+class VectorException(LLMException):
+    """Base exception for all vector operations and RAG errors."""
+
+    def __init__(self, message: str = "Vector error", *, provider: str | None = None, retryable: bool = False):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class EmbeddingException(VectorException):
+    """Raised when an embedding provider fails to generate vector embeddings."""
+
+    def __init__(self, message: str = "Embedding generation failed", *, provider: str | None = None, retryable: bool = True):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class VectorStoreException(VectorException):
+    """Raised on vector store operations (indexing, search, query, invalid vectors)."""
+
+    def __init__(self, message: str = "Vector store error", *, provider: str | None = None, retryable: bool = False):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class ChunkingException(VectorException):
+    """Raised when document splitting or chunking fails."""
+
+    def __init__(self, message: str = "Document chunking failed"):
+        super().__init__(message, retryable=False)
+
