@@ -90,3 +90,25 @@ class ChunkingException(VectorException):
     def __init__(self, message: str = "Document chunking failed"):
         super().__init__(message, retryable=False)
 
+
+class AgentException(LLMException):
+    """Base exception for agent and workflow execution errors."""
+
+    def __init__(self, message: str = "Agent error", *, provider: str | None = None, retryable: bool = False):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class MemoryException(AgentException):
+    """Raised when memory management or turn compaction fails."""
+
+    def __init__(self, message: str = "Memory error"):
+        super().__init__(message, retryable=False)
+
+
+class WorkflowException(AgentException):
+    """Raised on workflow graph execution, cycle limits, or routing failures."""
+
+    def __init__(self, message: str = "Workflow execution error"):
+        super().__init__(message, retryable=False)
+
+

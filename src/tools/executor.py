@@ -29,6 +29,11 @@ class ToolExecutor:
         self._registry = registry
         self._default_timeout_seconds = default_timeout_seconds
 
+    @property
+    def registry(self) -> ToolRegistry:
+        """Return the underlying ToolRegistry instance."""
+        return self._registry
+
     async def execute(self, tool_call: ToolCall, timeout_seconds: float | None = None) -> ToolResult:
         start_time = time.perf_counter()
         timeout = timeout_seconds or self._default_timeout_seconds
