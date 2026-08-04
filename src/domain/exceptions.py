@@ -134,4 +134,26 @@ class SafetyViolationError(ObservabilityException):
         super().__init__(message, retryable=False)
 
 
+class GatewayException(LLMException):
+    """Raised on streaming SSE gateway, backpressure, or connection errors."""
+
+    def __init__(self, message: str = "Streaming gateway error"):
+        super().__init__(message, retryable=False)
+
+
+class RouterException(LLMException):
+    """Raised on dynamic provider fallback routing failures or when all providers are unavailable."""
+
+    def __init__(self, message: str = "Dynamic routing failed"):
+        super().__init__(message, retryable=True)
+
+
+class QueueException(LLMException):
+    """Raised on async queue worker failures or task dead-lettering."""
+
+    def __init__(self, message: str = "Async queue task error"):
+        super().__init__(message, retryable=False)
+
+
+
 

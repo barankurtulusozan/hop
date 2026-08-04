@@ -3,8 +3,8 @@
 ## Candidate Overview
 - **Candidate Level Baseline**: L4 / L5 (Software Engineer / Senior Software Engineer)
 - **Target Level**: L6 / L7 (Staff Engineer / Principal AI Engineer)
-- **Current Phase**: Phase 5 — Production Observability, Cost Guardrails & Evaluation Engine (Completed)
-- **Current Operating Level**: L7+ (Principal AI Engineer / AI Platform Architect Maturity)
+- **Current Phase**: Phase 6 — Multi-Tenant Streaming Gateway, Dynamic Provider Router & Distributed Async Queue Engine (Completed)
+- **Current Operating Level**: L7+ / Principal AI Platform Architect
 
 ---
 
@@ -16,6 +16,7 @@
 | [ADR-0003](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0003-vector-store-and-dense-retrieval-engine.md) | Vector Store & Dense Retrieval Engine Architecture | Accepted | 2026-08-04 |
 | [ADR-0004](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md) | Multi-Agent Workflow & Conversation Memory Architecture | Accepted | 2026-08-04 |
 | [ADR-0005](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0005-production-observability-cost-guardrails-and-eval-engine.md) | Production Observability, Cost Guardrails & Evaluation Architecture | Accepted | 2026-08-04 |
+| [ADR-0006](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md) | Streaming Gateway, Dynamic Router & Async Queue Architecture | Accepted | 2026-08-04 |
 
 ---
 
@@ -34,6 +35,7 @@
 | PR-003 | Phase 3 | Vector Store & Dense Retrieval Engine with RAG Tool | ✅ Approved | **L6+ / L7 (Principal AI Engineer)** |
 | PR-004 | Phase 4 | Multi-Agent Workflow Engine & Memory Compaction | ✅ Approved | **L7 (Principal AI Engineer)** |
 | PR-005 | Phase 5 | Production Observability, Cost Guardrails & Evals | ✅ Approved | **L7+ (Principal AI Engineer)** |
+| PR-006 | Phase 6 | Multi-Tenant Streaming Gateway, Dynamic Router & Async Queue | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 
 ---
 
@@ -47,13 +49,14 @@
 │   │   ├── ADR-0002-tool-schema-normalization-and-execution-sandbox.md
 │   │   ├── ADR-0003-vector-store-and-dense-retrieval-engine.md
 │   │   ├── ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md
-│   │   └── ADR-0005-production-observability-cost-guardrails-and-eval-engine.md
+│   │   ├── ADR-0005-production-observability-cost-guardrails-and-eval-engine.md
+│   │   └── ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md
 │   └── architecture_memory.md
 ├── src/                                   # Enterprise AI Platform Core
 │   ├── py.typed                            # PEP 561 type marker
 │   ├── config.py                          # Immutable settings & secret containers
 │   ├── domain/                            # Hexagonal Port Boundary (No SDK imports)
-│   │   ├── exceptions.py                  # Domain exception hierarchy (LLM, Vector, Agent, Observability)
+│   │   ├── exceptions.py                  # Domain exception hierarchy (LLM, Gateway, Router, Queue)
 │   │   ├── interfaces.py                  # LLMProvider, EmbeddingProvider, VectorStore ports
 │   │   ├── models.py                      # Message, CompletionRequest/Response with Tools
 │   │   ├── vector.py                      # VectorRecord, Chunk, Document, MetadataFilter
@@ -61,11 +64,18 @@
 │   │   ├── agent.py                       # AgentConfig, AgentResponse, WorkflowResult
 │   │   ├── observability.py               # Span, SpanKind, CostLimit, SafetyCheckResult
 │   │   ├── evals.py                       # TestCase, EvalResult, EvalMetricKind
+│   │   ├── gateway.py                     # SSEEvent, SSEEventType
+│   │   ├── router.py                      # RoutingStrategy, ProviderHealth
+│   │   ├── queue.py                       # QueueTask, TaskPriority, TaskStatus
 │   │   └── tools.py                       # ToolDefinition, ToolCall, ToolResult
 │   ├── agent/                             # Stateful Agent Core
 │   │   └── agent.py                       # Agent runner encapsulating LLM, Tools, & Memory
 │   ├── memory/                            # Stateful Conversation Memory Engine
 │   │   └── manager.py                     # MemoryManager (Sliding window, token budget, summary, hybrid vector)
+│   ├── gateway/                           # Streaming Gateway & SSE Formatter
+│   │   └── streaming.py                   # SSEStreamFormatter (W3C text/event-stream & heartbeats)
+│   ├── queue/                             # Prioritized Async Task Queue Engine
+│   │   └── engine.py                      # AsyncTaskQueue & Dead Letter Queue (DLQ)
 │   ├── observability/                     # Production Observability & Safety Guardrails
 │   │   ├── tracer.py                      # OpenTelemetry-compatible Tracer & Span collector
 │   │   ├── cost_guard.py                  # Real-time CostGuardrail & token rate ceiling
@@ -91,7 +101,8 @@
 │       ├── circuit_breaker.py             # Fail-fast Circuit Breaker state machine
 │       ├── pipeline.py                    # Backoff+Jitter Retry & JSON Logger
 │       ├── tool_runner.py                 # Tool Execution Orchestrator & Auto-Correction Loop
-│       └── workflow.py                    # WorkflowGraph, WorkflowNode, WorkflowEdge orchestrator
+│       ├── workflow.py                    # WorkflowGraph, WorkflowNode, WorkflowEdge orchestrator
+│       └── router.py                      # DynamicProviderRouter with CircuitBreaker failover
 └── tests/                                 # Unit & Resilience Integration Suite
     ├── unit/
     │   ├── test_backoff.py
@@ -102,7 +113,10 @@
     │   ├── test_memory.py                 # MemoryManager strategy unit tests
     │   ├── test_workflow.py               # Agent & WorkflowGraph unit tests
     │   ├── test_observability.py          # Tracer, CostGuardrail, & PIIRedactor unit tests
-    │   └── test_evals.py                  # ShadowEvaluator metric unit tests
+    │   ├── test_evals.py                  # ShadowEvaluator metric unit tests
+    │   ├── test_gateway.py                # SSEStreamFormatter unit tests
+    │   ├── test_router.py                 # DynamicProviderRouter failover unit tests
+    │   └── test_queue.py                  # AsyncTaskQueue priority & DLQ unit tests
     └── integration/
         ├── test_resilience.py
         ├── test_tool_execution.py         # End-to-end tool execution & self-correction loop
