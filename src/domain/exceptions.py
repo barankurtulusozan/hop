@@ -218,6 +218,21 @@ class VaultException(LLMException):
         super().__init__(message, retryable=False)
 
 
+class SpeculativeException(LLMException):
+    """Raised on speculative draft verification or token acceptance failures."""
+
+    def __init__(self, message: str = "Speculative execution error"):
+        super().__init__(message, retryable=False)
+
+
+class AlignmentViolationError(LLMException):
+    """Raised when completion text violates RLHF/DPO model alignment policies."""
+
+    def __init__(self, message: str = "Model alignment policy breach"):
+        super().__init__(message, retryable=False)
+
+
+
 
 
 

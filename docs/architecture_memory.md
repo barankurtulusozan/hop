@@ -3,8 +3,8 @@
 ## Candidate Overview
 - **Candidate Level Baseline**: L4 / L5 (Software Engineer / Senior Software Engineer)
 - **Target Level**: L6 / L7 (Staff Engineer / Principal AI Engineer)
-- **Current Phase**: Phase 9 — Distributed Semantic Cache, Self-Healing Mesh & Trajectory Distillation (Completed)
-- **Current Operating Level**: **L7+ / Principal AI Platform Architect (Certified Across All 9 Architectural Phases)**
+- **Current Phase**: Phase 11 — Speculative Execution Engine, Model Alignment Guardrails & Ultimate Platform Certification (Completed)
+- **Current Operating Level**: **L7+ / Certified Principal AI Platform Architect (11-Phase Platform Certification Complete)**
 
 ---
 
@@ -20,6 +20,8 @@
 | [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted | 2026-08-05 |
 | [ADR-0008](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0008-production-deployment-cli-and-ecosystem-architecture.md) | Production Deployment, CLI & Ecosystem Architecture | Accepted | 2026-08-05 |
 | [ADR-0009](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0009-distributed-semantic-cache-self-healing-mesh-and-trajectory-distillation.md) | Semantic Cache, Self-Healing Mesh & Distillation Architecture | Accepted | 2026-08-05 |
+| [ADR-0010](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0010-multi-region-federation-consensus-and-zero-trust-vault.md) | Multi-Region Federation, Raft Consensus & Zero-Trust Vault | Accepted | 2026-08-05 |
+| [ADR-0011](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0011-speculative-execution-and-model-alignment-guardrails.md) | Speculative Execution Engine & Alignment Guardrails | Accepted | 2026-08-05 |
 
 ---
 
@@ -42,6 +44,8 @@
 | PR-007 | Phase 7 | Enterprise Security, PBAC Auth & Verification Harness | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 | PR-008 | Phase 8 | Production Deployment Blueprint, CLI & Ecosystem Docs | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 | PR-009 | Phase 9 | Distributed Semantic Cache, Self-Healing Mesh & Distillation | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
+| PR-010 | Phase 10 | Multi-Region Federation, Raft Consensus & Zero-Trust Vault | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
+| PR-011 | Phase 11 | Speculative Execution Engine & Alignment Guardrails | ✅ Approved | **L7+ (Certified Principal AI Platform Architect)** |
 
 ---
 

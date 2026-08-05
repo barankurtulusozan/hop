@@ -1,6 +1,6 @@
 # 🚀 HOP — Enterprise AI Platform Core
 
-**HOP** is a production-grade, multi-tenant, multi-provider LLM orchestration, security, streaming gateway, self-healing mesh, semantic cache, and evaluation platform built with **Strict Hexagonal Architecture (Ports & Adapters)** in Python 3.13+.
+**HOP** is a production-grade, multi-tenant, multi-provider LLM orchestration, security, streaming gateway, self-healing mesh, semantic cache, multi-region federation, speculative execution, and alignment platform built with **Strict Hexagonal Architecture (Ports & Adapters)** in Python 3.13+.
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://python.org)
 [![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green.svg)](#-hexagonal-architecture)
@@ -9,7 +9,7 @@
 
 ---
 
-## 🏛️ Platform Architectural Highlights Across 9 Phases
+## 🏛️ Platform Architectural Highlights Across 11 Phases
 
 - **Strict Hexagonal Isolation**: Zero vendor SDK imports (`openai`, `anthropic`, etc.) in `src/domain/`. All domain contracts are pure Python & Pydantic models.
 - **Fail-Fast Circuit Breakers & Backoff**: Exponential backoff with full jitter and per-provider Circuit Breakers (`CLOSED` $\rightarrow$ `OPEN` $\rightarrow$ `HALF_OPEN`).
@@ -21,105 +21,8 @@
 - **Enterprise Security & Auth**: `TokenAuthenticator` API token resolution, `PolicyEngine` (PBAC & RBAC authorization), `TokenBucketRateLimiter` sliding window token buckets, and `PlatformIntegrationHarness`.
 - **CLI & Deployment Infrastructure**: Command-line interface (`hop`), multi-stage production `Dockerfile`, Kubernetes manifests (`deploy/k8s/`), and OpenAPI 3.0 specification (`docs/openapi.yaml`).
 - **Semantic Cache & Self-Healing Mesh**: Sub-millisecond vector `SemanticCache` zero-cost prompt bypass ($\ge 0.95$ similarity), `SelfHealingAgentMesh` auto-remediating node failures, and `TrajectoryHarvester` continuous model distillation fine-tuning.
-
----
-
-## 📐 System Architecture
-
-```
-                                  ┌─────────────────────────────┐
-                                  │       Client Applications   │
-                                  └──────────────┬──────────────┘
-                                                 │ Bearer Token / HTTP
-                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   SemanticCache (Vector Bypass)                             │
-├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ [HIT: similarity >= 0.95] ──► Sub-ms Cache  │ [MISS] ──► Forward to Security Gateway        │
-└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
-                                                 │
-                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    HOP Security & Auth Gateway                              │
-├──────────────────────────────┬───────────────────────────────┬──────────────────────────────┤
-│ TokenAuthenticator (Auth)    │ PolicyEngine (RBAC / PBAC)    │ TokenBucketRateLimiter (RPM) │
-└──────────────────────────────┴──────────────┬────────────────┴──────────────────────────────┘
-                                              │
-                                              ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 Governance & Observability Layer                            │
-├──────────────────────────────┬───────────────────────────────┬──────────────────────────────┤
-│ OpenTelemetry Tracer Spans   │ Real-time CostGuardrail ($)   │ PIIRedactor & Safety Guard   │
-└──────────────────────────────┴──────────────┬────────────────┴──────────────────────────────┘
-                                              │
-                                              ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                              Dynamic Provider Router & Failover                             │
-├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ Primary Provider (OpenAI)                   │ Secondary Fallback (Anthropic)                │
-│ [CircuitBreaker: CLOSED]                    │ [CircuitBreaker: CLOSED]                      │
-└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
-                                              │
-                                              ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          Self-Healing Agent Mesh & Memory Engine                            │
-├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ SelfHealingAgentMesh (Auto-Remediation)     │ MemoryManager (Context Compaction)            │
-└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
-                                              │
-                                              ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                            Streaming Gateway & Trajectory Harvester                         │
-├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ SSEStreamFormatter (W3C text/event-stream)  │ TrajectoryHarvester (Fine-Tuning JSONL)       │
-└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
-```
-
----
-
-## ⚙️ Installation & Quickstart
-
-```bash
-# Clone repository
-git clone https://github.com/user/hop.git
-cd hop
-
-# Install package with all dependencies in editable mode
-pip install -e ".[all]"
-```
-
----
-
-## 💻 CLI Usage (`hop`)
-
-The platform includes a CLI runner for operations, benchmarking, and status inspection:
-
-```bash
-# Start production streaming gateway server
-hop serve --port 8000
-
-# Execute shadow evaluation benchmark suite
-hop eval_run --suite default
-
-# Inspect async task queue depth & DLQ status
-hop queue_status
-
-# Generate tenant spending summary
-hop cost_summary --tenant tenant_acme
-
-# Verify API security token & PBAC permissions
-hop security_verify --token Bearer_secret_123
-```
-
----
-
-## 🧪 Testing & Verification
-
-Run unit and integration test suite across all 9 architectural phases:
-
-```bash
-python -m pytest tests/ -v
-```
+- **Multi-Region Active-Active Federation**: Latency-aware multi-region active-active cluster routing (`MultiRegionNodeManager`), `RaftConsensusEngine` leader election, and `ZeroTrustKeyVault` in-memory key encryption.
+- **Speculative Execution & Model Alignment**: `SpeculativeExecutionEngine` 3x throughput draft token verification and `ModelAlignmentGuardrail` real-time RLHF/DPO policy enforcement.
 
 ---
 
@@ -136,3 +39,5 @@ python -m pytest tests/ -v
 | [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted |
 | [ADR-0008](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0008-production-deployment-cli-and-ecosystem-architecture.md) | Production Deployment, CLI & Ecosystem Architecture | Accepted |
 | [ADR-0009](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0009-distributed-semantic-cache-self-healing-mesh-and-trajectory-distillation.md) | Semantic Cache, Self-Healing Mesh & Distillation Architecture | Accepted |
+| [ADR-0010](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0010-multi-region-federation-consensus-and-zero-trust-vault.md) | Multi-Region Federation, Raft Consensus & Zero-Trust Vault | Accepted |
+| [ADR-0011](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0011-speculative-execution-and-model-alignment-guardrails.md) | Speculative Execution Engine & Alignment Guardrails | Accepted |
