@@ -3,8 +3,8 @@
 ## Candidate Overview
 - **Candidate Level Baseline**: L4 / L5 (Software Engineer / Senior Software Engineer)
 - **Target Level**: L6 / L7 (Staff Engineer / Principal AI Engineer)
-- **Current Phase**: Phase 6 — Multi-Tenant Streaming Gateway, Dynamic Provider Router & Distributed Async Queue Engine (Completed)
-- **Current Operating Level**: L7+ / Principal AI Platform Architect
+- **Current Phase**: Phase 7 — Enterprise Security & Auth Gateway, PBAC & Production Verification Harness (Completed)
+- **Current Operating Level**: **L7+ / Principal AI Platform Architect** (Fully Demonstrated Across All 7 Architectural Phases)
 
 ---
 
@@ -17,6 +17,7 @@
 | [ADR-0004](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md) | Multi-Agent Workflow & Conversation Memory Architecture | Accepted | 2026-08-04 |
 | [ADR-0005](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0005-production-observability-cost-guardrails-and-eval-engine.md) | Production Observability, Cost Guardrails & Evaluation Architecture | Accepted | 2026-08-04 |
 | [ADR-0006](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md) | Streaming Gateway, Dynamic Router & Async Queue Architecture | Accepted | 2026-08-04 |
+| [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted | 2026-08-05 |
 
 ---
 
@@ -36,6 +37,7 @@
 | PR-004 | Phase 4 | Multi-Agent Workflow Engine & Memory Compaction | ✅ Approved | **L7 (Principal AI Engineer)** |
 | PR-005 | Phase 5 | Production Observability, Cost Guardrails & Evals | ✅ Approved | **L7+ (Principal AI Engineer)** |
 | PR-006 | Phase 6 | Multi-Tenant Streaming Gateway, Dynamic Router & Async Queue | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
+| PR-007 | Phase 7 | Enterprise Security, PBAC Auth & Verification Harness | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 
 ---
 
@@ -50,13 +52,14 @@
 │   │   ├── ADR-0003-vector-store-and-dense-retrieval-engine.md
 │   │   ├── ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md
 │   │   ├── ADR-0005-production-observability-cost-guardrails-and-eval-engine.md
-│   │   └── ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md
+│   │   ├── ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md
+│   │   └── ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md
 │   └── architecture_memory.md
 ├── src/                                   # Enterprise AI Platform Core
 │   ├── py.typed                            # PEP 561 type marker
 │   ├── config.py                          # Immutable settings & secret containers
 │   ├── domain/                            # Hexagonal Port Boundary (No SDK imports)
-│   │   ├── exceptions.py                  # Domain exception hierarchy (LLM, Gateway, Router, Queue)
+│   │   ├── exceptions.py                  # Domain exception hierarchy (LLM, Security, Gateway, Router, Queue)
 │   │   ├── interfaces.py                  # LLMProvider, EmbeddingProvider, VectorStore ports
 │   │   ├── models.py                      # Message, CompletionRequest/Response with Tools
 │   │   ├── vector.py                      # VectorRecord, Chunk, Document, MetadataFilter
@@ -67,7 +70,14 @@
 │   │   ├── gateway.py                     # SSEEvent, SSEEventType
 │   │   ├── router.py                      # RoutingStrategy, ProviderHealth
 │   │   ├── queue.py                       # QueueTask, TaskPriority, TaskStatus
+│   │   ├── security.py                    # TenantContext, Role, Permission, SecurityPolicy
 │   │   └── tools.py                       # ToolDefinition, ToolCall, ToolResult
+│   ├── security/                          # Security & Authorization Subsystem
+│   │   ├── auth.py                        # TokenAuthenticator (Bearer API token resolution)
+│   │   ├── policy.py                      # PolicyEngine (PBAC & RBAC enforcement)
+│   │   └── rate_limiter.py                # TokenBucketRateLimiter (Sliding-window RPM)
+│   ├── harness/                           # Platform Integration Verification Harness
+│   │   └── harness.py                     # PlatformIntegrationHarness (End-to-end platform validation)
 │   ├── agent/                             # Stateful Agent Core
 │   │   └── agent.py                       # Agent runner encapsulating LLM, Tools, & Memory
 │   ├── memory/                            # Stateful Conversation Memory Engine
@@ -116,7 +126,8 @@
     │   ├── test_evals.py                  # ShadowEvaluator metric unit tests
     │   ├── test_gateway.py                # SSEStreamFormatter unit tests
     │   ├── test_router.py                 # DynamicProviderRouter failover unit tests
-    │   └── test_queue.py                  # AsyncTaskQueue priority & DLQ unit tests
+    │   ├── test_queue.py                  # AsyncTaskQueue priority & DLQ unit tests
+    │   └── test_security.py               # TokenAuthenticator, PolicyEngine, & RateLimiter unit tests
     └── integration/
         ├── test_resilience.py
         ├── test_tool_execution.py         # End-to-end tool execution & self-correction loop

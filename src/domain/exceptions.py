@@ -155,5 +155,34 @@ class QueueException(LLMException):
         super().__init__(message, retryable=False)
 
 
+class SecurityException(LLMException):
+    """Base exception for authentication, authorization, and tenant security policy violations."""
+
+    def __init__(self, message: str = "Security exception", *, provider: str | None = None, retryable: bool = False):
+        super().__init__(message, provider=provider, retryable=retryable)
+
+
+class AuthenticationError(SecurityException):
+    """Raised when an API Bearer token or credentials are missing or invalid."""
+
+    def __init__(self, message: str = "Authentication failed: invalid token"):
+        super().__init__(message, retryable=False)
+
+
+class AuthorizationError(SecurityException):
+    """Raised when an authenticated tenant/user lacks required PBAC permissions."""
+
+    def __init__(self, message: str = "Authorization failed: permission denied"):
+        super().__init__(message, retryable=False)
+
+
+class RateLimitViolationError(SecurityException):
+    """Raised when a tenant breaches requests-per-minute (RPM) rate limits."""
+
+    def __init__(self, message: str = "Rate limit breached"):
+        super().__init__(message, retryable=True)
+
+
+
 
 
