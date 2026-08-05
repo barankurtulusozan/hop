@@ -183,6 +183,28 @@ class RateLimitViolationError(SecurityException):
         super().__init__(message, retryable=True)
 
 
+class CacheException(LLMException):
+    """Raised on semantic vector cache operation failures."""
+
+    def __init__(self, message: str = "Semantic cache error"):
+        super().__init__(message, retryable=False)
+
+
+class MeshException(LLMException):
+    """Raised when self-healing agent mesh fails auto-remediation."""
+
+    def __init__(self, message: str = "Self-healing mesh error"):
+        super().__init__(message, retryable=False)
+
+
+class DistillationException(LLMException):
+    """Raised on model distillation trajectory dataset harvesting errors."""
+
+    def __init__(self, message: str = "Trajectory distillation error"):
+        super().__init__(message, retryable=False)
+
+
+
 
 
 

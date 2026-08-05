@@ -1,6 +1,6 @@
 # 🚀 HOP — Enterprise AI Platform Core
 
-**HOP** is a production-grade, multi-tenant, multi-provider LLM orchestration, security, streaming gateway, and evaluation platform built with **Strict Hexagonal Architecture (Ports & Adapters)** in Python 3.13+.
+**HOP** is a production-grade, multi-tenant, multi-provider LLM orchestration, security, streaming gateway, self-healing mesh, semantic cache, and evaluation platform built with **Strict Hexagonal Architecture (Ports & Adapters)** in Python 3.13+.
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://python.org)
 [![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green.svg)](#-hexagonal-architecture)
@@ -9,7 +9,7 @@
 
 ---
 
-## 🏛️ Platform Architectural Highlights
+## 🏛️ Platform Architectural Highlights Across 9 Phases
 
 - **Strict Hexagonal Isolation**: Zero vendor SDK imports (`openai`, `anthropic`, etc.) in `src/domain/`. All domain contracts are pure Python & Pydantic models.
 - **Fail-Fast Circuit Breakers & Backoff**: Exponential backoff with full jitter and per-provider Circuit Breakers (`CLOSED` $\rightarrow$ `OPEN` $\rightarrow$ `HALF_OPEN`).
@@ -19,7 +19,8 @@
 - **Production Governance & Observability**: OpenTelemetry-compatible `Tracer`, real-time `CostGuardrail` budget protection, `PIIRedactor` (masking API keys, SSNs, credit cards, emails), `SafetyGuardrail` (prompt injection detector), and `ShadowEvaluator`.
 - **Streaming Gateway & Async Queue**: W3C Server-Sent Events (`SSEStreamFormatter`) streaming, `DynamicProviderRouter` zero-downtime failover, and `AsyncTaskQueue` worker pool with Dead Letter Queue (DLQ).
 - **Enterprise Security & Auth**: `TokenAuthenticator` API token resolution, `PolicyEngine` (PBAC & RBAC authorization), `TokenBucketRateLimiter` sliding window token buckets, and `PlatformIntegrationHarness`.
-- **Operational CLI & Deployment**: Command-line interface (`hop`), multi-stage production `Dockerfile`, Kubernetes manifests (`deploy/k8s/`), and OpenAPI 3.0 specification (`docs/openapi.yaml`).
+- **CLI & Deployment Infrastructure**: Command-line interface (`hop`), multi-stage production `Dockerfile`, Kubernetes manifests (`deploy/k8s/`), and OpenAPI 3.0 specification (`docs/openapi.yaml`).
+- **Semantic Cache & Self-Healing Mesh**: Sub-millisecond vector `SemanticCache` zero-cost prompt bypass ($\ge 0.95$ similarity), `SelfHealingAgentMesh` auto-remediating node failures, and `TrajectoryHarvester` continuous model distillation fine-tuning.
 
 ---
 
@@ -30,6 +31,13 @@
                                   │       Client Applications   │
                                   └──────────────┬──────────────┘
                                                  │ Bearer Token / HTTP
+                                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   SemanticCache (Vector Bypass)                             │
+├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
+│ [HIT: similarity >= 0.95] ──► Sub-ms Cache  │ [MISS] ──► Forward to Security Gateway        │
+└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
+                                                 │
                                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                    HOP Security & Auth Gateway                              │
@@ -54,16 +62,16 @@
                                               │
                                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                              Multi-Agent Workflow & Memory Engine                           │
+│                          Self-Healing Agent Mesh & Memory Engine                            │
 ├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ MemoryManager (Context Compaction)          │ WorkflowGraph (Sequential/Parallel/Supervisor)│
+│ SelfHealingAgentMesh (Auto-Remediation)     │ MemoryManager (Context Compaction)            │
 └─────────────────────────────────────────────┴───────────────────────────────────────────────┘
                                               │
                                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                            Streaming Gateway & Async Queue Engine                           │
+│                            Streaming Gateway & Trajectory Harvester                         │
 ├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│ SSEStreamFormatter (W3C text/event-stream)  │ AsyncTaskQueue & Dead Letter Queue (DLQ)      │
+│ SSEStreamFormatter (W3C text/event-stream)  │ TrajectoryHarvester (Fine-Tuning JSONL)       │
 └─────────────────────────────────────────────┴───────────────────────────────────────────────┘
 ```
 
@@ -107,24 +115,10 @@ hop security_verify --token Bearer_secret_123
 
 ## 🧪 Testing & Verification
 
-Run unit and integration test suite across all 8 architectural phases:
+Run unit and integration test suite across all 9 architectural phases:
 
 ```bash
 python -m pytest tests/ -v
-```
-
----
-
-## 🐳 Production Deployment
-
-### Docker Compose
-```bash
-docker-compose -f deploy/docker-compose.yml up -d
-```
-
-### Kubernetes (K8s)
-```bash
-kubectl apply -f deploy/k8s/deployment.yaml
 ```
 
 ---
@@ -141,3 +135,4 @@ kubectl apply -f deploy/k8s/deployment.yaml
 | [ADR-0006](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md) | Streaming Gateway, Dynamic Router & Async Queue Architecture | Accepted |
 | [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted |
 | [ADR-0008](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0008-production-deployment-cli-and-ecosystem-architecture.md) | Production Deployment, CLI & Ecosystem Architecture | Accepted |
+| [ADR-0009](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0009-distributed-semantic-cache-self-healing-mesh-and-trajectory-distillation.md) | Semantic Cache, Self-Healing Mesh & Distillation Architecture | Accepted |
