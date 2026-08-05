@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: HOP Enterprise AI Platform API
+  description: Multi-tenant, multi-provider LLM orchestration, security, streaming gateway, and evaluation platform API.
+  version: 1.0.0
+paths:
+  /v1/chat/completions:
+    post:
+      summary: Execute LLM Chat Completion
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messages
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum: [system, user, assistant, tool]
+                      content:
+                        type: string
+                model:
+                  type: string
+                  default: gpt-4o
+                stream:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Completion response or W3C SSE event stream.
+  /v1/agents/run:
+    post:
+      summary: Run Stateful Agent Workflows
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_input
+              properties:
+                user_input:
+                  type: string
+                system_prompt:
+                  type: string
+                tools:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Agent execution trajectory result.
+  /v1/evals/run:
+    post:
+      summary: Run Autonomous Shadow Evaluation
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Benchmark trajectory metrics.
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

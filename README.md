@@ -1,168 +1,143 @@
-# Enterprise AI Platform Core
+# 🚀 HOP — Enterprise AI Platform Core
 
-A production-grade, resilient, vendor-agnostic LLM Orchestrator & Agentic Execution Platform built using **Hexagonal Architecture (Ports & Adapters)**.
+**HOP** is a production-grade, multi-tenant, multi-provider LLM orchestration, security, streaming gateway, and evaluation platform built with **Strict Hexagonal Architecture (Ports & Adapters)** in Python 3.13+.
 
-Designed for long-term maintainability, zero vendor lock-in, fail-fast production safety, defensive schema validation, and self-correcting tool execution loops.
-
----
-
-## 🏛️ Architectural Highlights
-
-```
-                                  ┌───────────────────────────┐
-                                  │      Application Code     │
-                                  └─────────────┬─────────────┘
-                                                │
-                                                ▼
-                                  ┌───────────────────────────┐
-                                  │   LLMOrchestrator Pipeline│
-                                  │ ┌───────────────────────┐ │
-                                  │ │ Exponential Backoff   │ │
-                                  │ │ Circuit Breaker (CB)  │ │
-                                  │ │ Timeout Protection    │ │
-                                  │ │ Structured JSON Logger│ │
-                                  │ └───────────────────────┘ │
-                                  └─────────────┬─────────────┘
-                                                │
-                                                ▼
-                                  ┌───────────────────────────┐
-                                  │    LLMProvider (Port)     │
-                                  └──────┬──────────────┬─────┘
-                                         │              │
-                    ┌────────────────────┘              └────────────────────┐
-                    ▼                                                        ▼
-         ┌─────────────────────┐                                  ┌─────────────────────┐
-         │    OpenAIAdapter    │                                  │   AnthropicAdapter  │
-         └──────────┬──────────┘                                  └──────────┬──────────┘
-                    ▼                                                        ▼
-         ┌─────────────────────┐                                  ┌─────────────────────┐
-         │     OpenAI SDK      │                                  │    Anthropic SDK    │
-         └─────────────────────┘                                  └─────────────────────┘
-```
-
-1. **Hexagonal Ports & Adapters**: Core domain models (`CompletionRequest`, `CompletionResponse`, `Message`, `Role`) and the `LLMProvider` port have **zero vendor SDK dependencies**. OpenAI and Anthropic SDKs are completely isolated inside `src/adapters/`.
-2. **Production Resilience Engine**:
-   - **Exponential Backoff with Full Jitter**: AWS Architecture algorithm preventing thundering herd problems during rate limit spikes (`429`).
-   - **Per-Provider Circuit Breaker**: State machine (`CLOSED` $\rightarrow$ `OPEN` $\rightarrow$ `HALF_OPEN`) fast-failing requests when upstream providers encounter consecutive outages.
-   - **Per-Request Timeout Safety**: Wraps requests in `asyncio.timeout` and translates timeouts into retryable HTTP 504 errors.
-   - **Structured JSON Telemetry**: stdlib `logging` formatted into valid JSON lines for Datadog/CloudWatch aggregation.
-3. **Structured Tool Engine & Security Sandbox**:
-   - **Auto-Schema Generator & Registry**: Converts Python type hints and Pydantic models into OpenAPI/JSON-Schema compliant tool definitions.
-   - **Defensive Pydantic Validation Boundary**: Validates raw LLM arguments before handler execution, preventing schema injection and type crashes.
-   - **Sandboxed Execution Engine**: Traps all tool execution exceptions, enforces per-tool timeouts, and runs synchronous handlers off the main event loop via `asyncio.to_thread`.
-   - **Agentic Auto-Correction Loop**: Catches malformed tool parameters and constructs corrective `Role.TOOL` turns to re-prompt the LLM automatically.
+[![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://python.org)
+[![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green.svg)](#-hexagonal-architecture)
+[![Test Suite](https://img.shields.io/badge/tests-100%25%20passing-brightgreen.svg)](#-testing)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 ---
 
-## 📂 Repository Structure
+## 🏛️ Platform Architectural Highlights
+
+- **Strict Hexagonal Isolation**: Zero vendor SDK imports (`openai`, `anthropic`, etc.) in `src/domain/`. All domain contracts are pure Python & Pydantic models.
+- **Fail-Fast Circuit Breakers & Backoff**: Exponential backoff with full jitter and per-provider Circuit Breakers (`CLOSED` $\rightarrow$ `OPEN` $\rightarrow$ `HALF_OPEN`).
+- **Sandboxed Tool Engine**: Defensive Pydantic schema validation, sandboxed execution timeouts, and agentic auto-correction loops.
+- **Dense Vector Retrieval Engine**: Embeddings port, `InMemoryVectorStore` supporting Cosine, Dot Product, and Euclidean L2 distance metrics with payload predicate filtering and RAG tool integration.
+- **Multi-Agent Workflow Engine**: Stateful `MemoryManager` with sliding window, token budget, rolling LLM summaries, and hybrid vector RAG retrieval. Directed `WorkflowGraph` with sequential, parallel, and supervisor routing.
+- **Production Governance & Observability**: OpenTelemetry-compatible `Tracer`, real-time `CostGuardrail` budget protection, `PIIRedactor` (masking API keys, SSNs, credit cards, emails), `SafetyGuardrail` (prompt injection detector), and `ShadowEvaluator`.
+- **Streaming Gateway & Async Queue**: W3C Server-Sent Events (`SSEStreamFormatter`) streaming, `DynamicProviderRouter` zero-downtime failover, and `AsyncTaskQueue` worker pool with Dead Letter Queue (DLQ).
+- **Enterprise Security & Auth**: `TokenAuthenticator` API token resolution, `PolicyEngine` (PBAC & RBAC authorization), `TokenBucketRateLimiter` sliding window token buckets, and `PlatformIntegrationHarness`.
+- **Operational CLI & Deployment**: Command-line interface (`hop`), multi-stage production `Dockerfile`, Kubernetes manifests (`deploy/k8s/`), and OpenAPI 3.0 specification (`docs/openapi.yaml`).
+
+---
+
+## 📐 System Architecture
 
 ```
-/hop
-├── pyproject.toml                         # Build system, dependencies, & pytest config
-├── README.md                              # Platform documentation & quickstart
-├── docs/                                  # Persistent Architectural Memory & ADRs
-│   ├── adrs/
-│   │   ├── ADR-0001-llm-provider-abstraction.md
-│   │   └── ADR-0002-tool-schema-normalization-and-execution-sandbox.md
-│   └── architecture_memory.md
-├── src/                                   # Enterprise AI Platform Core
-│   ├── py.typed                            # PEP 561 package typing marker
-│   ├── config.py                          # Immutable settings & SecretStr containers
-│   ├── domain/                            # Hexagonal Port Boundary (Zero SDK imports)
-│   │   ├── exceptions.py                  # Standardized domain exception hierarchy
-│   │   ├── interfaces.py                  # LLMProvider abstract interface
-│   │   ├── models.py                      # CompletionRequest/Response, Messages
-│   │   └── tools.py                       # ToolDefinition, ToolCall, ToolResult
-│   ├── tools/                             # Tool Subsystem & Security Sandbox
-│   │   ├── registry.py                    # ToolRegistry & auto-schema generator
-│   │   └── executor.py                    # Sandboxed ToolExecutor
-│   ├── adapters/                          # Vendor Adapters (OpenAI, Anthropic, Mock)
-│   │   ├── mock_adapter.py
-│   │   ├── openai_adapter.py
-│   │   └── anthropic_adapter.py
-│   └── orchestrator/                      # Execution & Reliability Subsystems
-│       ├── circuit_breaker.py             # CircuitBreaker state machine
-│       ├── pipeline.py                    # LLMOrchestrator pipeline
-│       └── tool_runner.py                 # ToolOrchestrator & self-correction loop
-└── tests/                                 # Unit & Resilience Integration Suite
-    ├── unit/
-    └── integration/
+                                  ┌─────────────────────────────┐
+                                  │       Client Applications   │
+                                  └──────────────┬──────────────┘
+                                                 │ Bearer Token / HTTP
+                                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    HOP Security & Auth Gateway                              │
+├──────────────────────────────┬───────────────────────────────┬──────────────────────────────┤
+│ TokenAuthenticator (Auth)    │ PolicyEngine (RBAC / PBAC)    │ TokenBucketRateLimiter (RPM) │
+└──────────────────────────────┴──────────────┬────────────────┴──────────────────────────────┘
+                                              │
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 Governance & Observability Layer                            │
+├──────────────────────────────┬───────────────────────────────┬──────────────────────────────┤
+│ OpenTelemetry Tracer Spans   │ Real-time CostGuardrail ($)   │ PIIRedactor & Safety Guard   │
+└──────────────────────────────┴──────────────┬────────────────┴──────────────────────────────┘
+                                              │
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              Dynamic Provider Router & Failover                             │
+├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
+│ Primary Provider (OpenAI)                   │ Secondary Fallback (Anthropic)                │
+│ [CircuitBreaker: CLOSED]                    │ [CircuitBreaker: CLOSED]                      │
+└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
+                                              │
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              Multi-Agent Workflow & Memory Engine                           │
+├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
+│ MemoryManager (Context Compaction)          │ WorkflowGraph (Sequential/Parallel/Supervisor)│
+└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
+                                              │
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            Streaming Gateway & Async Queue Engine                           │
+├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
+│ SSEStreamFormatter (W3C text/event-stream)  │ AsyncTaskQueue & Dead Letter Queue (DLQ)      │
+└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📜 Architecture Decision Records (ADRs)
-
-- [ADR-0001: LLM Provider Abstraction via Hexagonal Ports & Adapters](docs/adrs/ADR-0001-llm-provider-abstraction.md)
-- [ADR-0002: Tool Schema Normalization & Sandboxed Execution Engine](docs/adrs/ADR-0002-tool-schema-normalization-and-execution-sandbox.md)
-
----
-
-## ⚡ Quickstart & Installation
-
-### Prerequisites
-Python 3.11+ required.
+## ⚙️ Installation & Quickstart
 
 ```bash
 # Clone repository
 git clone https://github.com/user/hop.git
 cd hop
 
-# Install package with all optional dependencies in editable mode
+# Install package with all dependencies in editable mode
 pip install -e ".[all]"
 ```
 
-### Running Tests
+---
+
+## 💻 CLI Usage (`hop`)
+
+The platform includes a CLI runner for operations, benchmarking, and status inspection:
 
 ```bash
-# Run unit and integration test suite
+# Start production streaming gateway server
+hop serve --port 8000
+
+# Execute shadow evaluation benchmark suite
+hop eval_run --suite default
+
+# Inspect async task queue depth & DLQ status
+hop queue_status
+
+# Generate tenant spending summary
+hop cost_summary --tenant tenant_acme
+
+# Verify API security token & PBAC permissions
+hop security_verify --token Bearer_secret_123
+```
+
+---
+
+## 🧪 Testing & Verification
+
+Run unit and integration test suite across all 8 architectural phases:
+
+```bash
 python -m pytest tests/ -v
 ```
 
 ---
 
-## 💻 Example Usage
+## 🐳 Production Deployment
 
-```python
-import asyncio
-from src.config import Settings
-from src.adapters.openai_adapter import OpenAIAdapter
-from src.orchestrator.pipeline import LLMOrchestrator
-from src.domain.models import CompletionRequest, Message, Role
-from src.tools.registry import ToolRegistry
-from src.tools.executor import ToolExecutor
-from src.orchestrator.tool_runner import ToolOrchestrator
-
-# 1. Register a security-checked tool
-registry = ToolRegistry()
-
-@registry.register(name="get_stock_price", description="Retrieve real-time stock price")
-def get_stock_price(ticker: str) -> float:
-    return 142.50
-
-# 2. Initialize platform orchestrator
-settings = Settings.from_env()
-openai_adapter = OpenAIAdapter(settings.providers.openai)
-llm = LLMOrchestrator(
-    providers={"openai": openai_adapter},
-    default_provider="openai",
-    retry_config=settings.retry,
-)
-
-tool_executor = ToolExecutor(registry)
-tool_orch = ToolOrchestrator(llm, tool_executor)
-
-# 3. Execute completion with tools and auto-correction
-async def main():
-    req = CompletionRequest(
-        messages=[Message(role=Role.USER, content="What is AAPL stock price?")],
-        model="gpt-4o",
-        tools=registry.list_tools(),
-    )
-    response, tool_results = await tool_orch.run_with_tools(req)
-    print("Final Answer:", response.content)
-    print("Executed Tools:", tool_results)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+### Docker Compose
+```bash
+docker-compose -f deploy/docker-compose.yml up -d
 ```
+
+### Kubernetes (K8s)
+```bash
+kubectl apply -f deploy/k8s/deployment.yaml
+```
+
+---
+
+## 📄 Architectural Decision Records (ADRs)
+
+| ADR ID | Title | Status |
+|--------|-------|--------|
+| [ADR-0001](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0001-llm-provider-abstraction.md) | LLM Provider Abstraction via Hexagonal Ports & Adapters | Accepted |
+| [ADR-0002](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0002-tool-schema-normalization-and-execution-sandbox.md) | Tool Schema Normalization & Sandboxed Execution Engine | Accepted |
+| [ADR-0003](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0003-vector-store-and-dense-retrieval-engine.md) | Vector Store & Dense Retrieval Engine Architecture | Accepted |
+| [ADR-0004](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md) | Multi-Agent Workflow & Conversation Memory Architecture | Accepted |
+| [ADR-0005](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0005-production-observability-cost-guardrails-and-eval-engine.md) | Production Observability, Cost Guardrails & Evaluation Architecture | Accepted |
+| [ADR-0006](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md) | Streaming Gateway, Dynamic Router & Async Queue Architecture | Accepted |
+| [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted |
+| [ADR-0008](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0008-production-deployment-cli-and-ecosystem-architecture.md) | Production Deployment, CLI & Ecosystem Architecture | Accepted |

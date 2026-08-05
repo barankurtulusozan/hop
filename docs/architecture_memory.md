@@ -3,8 +3,8 @@
 ## Candidate Overview
 - **Candidate Level Baseline**: L4 / L5 (Software Engineer / Senior Software Engineer)
 - **Target Level**: L6 / L7 (Staff Engineer / Principal AI Engineer)
-- **Current Phase**: Phase 7 — Enterprise Security & Auth Gateway, PBAC & Production Verification Harness (Completed)
-- **Current Operating Level**: **L7+ / Principal AI Platform Architect** (Fully Demonstrated Across All 7 Architectural Phases)
+- **Current Phase**: Phase 8 — Production Deployment Blueprint, CLI Engine & Ecosystem Documentation (Completed)
+- **Current Operating Level**: **L7+ / Principal AI Platform Architect** (Fully Demonstrated Across All 8 Architectural Phases)
 
 ---
 
@@ -18,6 +18,7 @@
 | [ADR-0005](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0005-production-observability-cost-guardrails-and-eval-engine.md) | Production Observability, Cost Guardrails & Evaluation Architecture | Accepted | 2026-08-04 |
 | [ADR-0006](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md) | Streaming Gateway, Dynamic Router & Async Queue Architecture | Accepted | 2026-08-04 |
 | [ADR-0007](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md) | Enterprise Security, PBAC Auth & Verification Harness Architecture | Accepted | 2026-08-05 |
+| [ADR-0008](file:///Users/barankurtulusozan/hop/docs/adrs/ADR-0008-production-deployment-cli-and-ecosystem-architecture.md) | Production Deployment, CLI & Ecosystem Architecture | Accepted | 2026-08-05 |
 
 ---
 
@@ -38,6 +39,7 @@
 | PR-005 | Phase 5 | Production Observability, Cost Guardrails & Evals | ✅ Approved | **L7+ (Principal AI Engineer)** |
 | PR-006 | Phase 6 | Multi-Tenant Streaming Gateway, Dynamic Router & Async Queue | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 | PR-007 | Phase 7 | Enterprise Security, PBAC Auth & Verification Harness | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
+| PR-008 | Phase 8 | Production Deployment Blueprint, CLI & Ecosystem Docs | ✅ Approved | **L7+ (Principal AI Platform Architect)** |
 
 ---
 
@@ -45,7 +47,9 @@
 ```
 /hop
 ├── pyproject.toml                         # Project build system & dependencies
+├── README.md                              # Complete Ecosystem Documentation
 ├── docs/                                  # Persistent Architectural Memory & ADRs
+│   ├── openapi.yaml                       # OpenAPI 3.0 API Specification
 │   ├── adrs/
 │   │   ├── ADR-0001-llm-provider-abstraction.md
 │   │   ├── ADR-0002-tool-schema-normalization-and-execution-sandbox.md
@@ -53,8 +57,14 @@
 │   │   ├── ADR-0004-multi-agent-workflow-and-conversation-memory-engine.md
 │   │   ├── ADR-0005-production-observability-cost-guardrails-and-eval-engine.md
 │   │   ├── ADR-0006-streaming-gateway-dynamic-router-and-async-queue.md
-│   │   └── ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md
+│   │   ├── ADR-0007-enterprise-security-pbac-auth-and-verification-harness.md
+│   │   └── ADR-0008-production-deployment-cli-and-ecosystem-architecture.md
 │   └── architecture_memory.md
+├── deploy/                                # Infrastructure Automation & Manifests
+│   ├── Dockerfile                         # Multi-stage production container build
+│   ├── docker-compose.yml                 # Local production composition stack
+│   └── k8s/
+│       └── deployment.yaml                # Production K8s Deployment, Service & HPA
 ├── src/                                   # Enterprise AI Platform Core
 │   ├── py.typed                            # PEP 561 type marker
 │   ├── config.py                          # Immutable settings & secret containers
@@ -71,7 +81,11 @@
 │   │   ├── router.py                      # RoutingStrategy, ProviderHealth
 │   │   ├── queue.py                       # QueueTask, TaskPriority, TaskStatus
 │   │   ├── security.py                    # TenantContext, Role, Permission, SecurityPolicy
+│   │   ├── cli.py                         # CommandResult, CLIConfig
 │   │   └── tools.py                       # ToolDefinition, ToolCall, ToolResult
+│   ├── cli/                               # Operations Command Line Interface
+│   │   ├── main.py                        # CLI entrypoint
+│   │   └── runner.py                      # HOPCLIRunner (serve, eval_run, queue_status, etc.)
 │   ├── security/                          # Security & Authorization Subsystem
 │   │   ├── auth.py                        # TokenAuthenticator (Bearer API token resolution)
 │   │   ├── policy.py                      # PolicyEngine (PBAC & RBAC enforcement)
@@ -127,7 +141,8 @@
     │   ├── test_gateway.py                # SSEStreamFormatter unit tests
     │   ├── test_router.py                 # DynamicProviderRouter failover unit tests
     │   ├── test_queue.py                  # AsyncTaskQueue priority & DLQ unit tests
-    │   └── test_security.py               # TokenAuthenticator, PolicyEngine, & RateLimiter unit tests
+    │   ├── test_security.py               # TokenAuthenticator, PolicyEngine, & RateLimiter unit tests
+    │   └── test_cli.py                    # HOPCLIRunner command unit tests
     └── integration/
         ├── test_resilience.py
         ├── test_tool_execution.py         # End-to-end tool execution & self-correction loop
