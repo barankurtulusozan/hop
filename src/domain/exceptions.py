@@ -204,6 +204,21 @@ class DistillationException(LLMException):
         super().__init__(message, retryable=False)
 
 
+class FederationException(LLMException):
+    """Raised on multi-region active-active federation or Raft consensus failures."""
+
+    def __init__(self, message: str = "Federation error"):
+        super().__init__(message, retryable=True)
+
+
+class VaultException(LLMException):
+    """Raised on zero-trust key vault encryption/decryption or key isolation failures."""
+
+    def __init__(self, message: str = "Key vault error"):
+        super().__init__(message, retryable=False)
+
+
+
 
 
 
