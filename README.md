@@ -4,16 +4,17 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://python.org)
 [![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20Ports%20%26%20Adapters-green.svg)](#-hexagonal-architecture)
-[![Test Suite](https://img.shields.io/badge/tests-73%2F73%20passing-brightgreen.svg)](#-global-test-execution)
+[![Test Suite](https://img.shields.io/badge/tests-95%2F95%20passing-brightgreen.svg)](#-global-test-execution)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 ---
 
 ## 📑 Table of Contents
 1. [💡 Executive Summary: What Do These Projects Do?](#-executive-summary-what-do-these-projects-do)
-2. [🏢 Modern Enterprise Business Use Cases & Adoption Roadmap](#-modern-enterprise-business-use-cases--adoption-roadmap)
-3. [🏛️ Core Hexagonal Architecture](#️-core-hexagonal-architecture)
-4. [📦 Detailed 11 Implemented Projects / Phases](#-detailed-11-implemented-projects--phases)
+2. [🌟 Recent AI Engineering Enhancements (Phase 12)](#-recent-ai-engineering-enhancements-phase-12)
+3. [🏢 Modern Enterprise Business Use Cases & Adoption Roadmap](#-modern-enterprise-business-use-cases--adoption-roadmap)
+4. [🏛️ Core Hexagonal Architecture](#️-core-hexagonal-architecture)
+5. [📦 Detailed 12 Implemented Projects / Phases](#-detailed-12-implemented-projects--phases)
    - [Phase 1: Multi-Provider LLM Orchestration & Resilient Pipeline](#phase-1-multi-provider-llm-orchestration--resilient-pipeline)
    - [Phase 2: Sandboxed Tool Execution Engine & Agentic Auto-Correction](#phase-2-sandboxed-tool-execution-engine--agentic-auto-correction)
    - [Phase 3: Dense Vector Retrieval Engine & RAG Pipeline](#phase-3-dense-vector-retrieval-engine--rag-pipeline)
@@ -25,11 +26,12 @@
    - [Phase 9: Distributed Semantic Cache, Self-Healing Mesh & Trajectory Distillation](#phase-9-distributed-semantic-cache-self-healing-mesh--trajectory-distillation)
    - [Phase 10: Multi-Region Active-Active Federation, Raft Consensus & Zero-Trust Vault](#phase-10-multi-region-active-active-federation-raft-consensus--zero-trust-vault)
    - [Phase 11: Speculative Execution Engine & Model Alignment Guardrails](#phase-11-speculative-execution-engine--model-alignment-guardrails)
-5. [💻 CLI Operations Guide](#-cli-operations-guide)
-6. [🧪 Global Test Execution](#-global-test-execution)
-7. [📄 Architectural Decision Records (ADRs)](#-architectural-decision-records-adrs)
-8. [🐳 Deployment & Infrastructure](#-deployment--infrastructure)
-9. [🌍 Language Translations](#-language-translations)
+   - [Phase 12: Hybrid RAG, Constrained JSON, Ragas Judge, Drift Detection & Ollama Adapter](#phase-12-hybrid-rag-constrained-json-ragas-judge-drift-detection--ollama-adapter)
+6. [💻 CLI Operations Guide](#-cli-operations-guide)
+7. [🧪 Global Test Execution](#-global-test-execution)
+8. [📄 Architectural Decision Records (ADRs)](#-architectural-decision-records-adrs)
+9. [🐳 Deployment & Infrastructure](#-deployment--infrastructure)
+10. [🌍 Language Translations](#-language-translations)
 
 ---
 
@@ -50,6 +52,49 @@
 | **Phase 9: Semantic Cache & Self-Healing Mesh** | Serves cached responses for similar queries at **zero cost in sub-milliseconds**; auto-remediates cluster node failures. |
 | **Phase 10: Multi-Region Federation & Key Vault** | Replicating cluster state across multi-region nodes via Raft consensus; encrypts secrets in memory via AES-256. |
 | **Phase 11: Speculative Execution & Alignment** | Accelerates inference by up to **3x via speculative draft decoding**; enforces real-time RLHF/DPO policy safety checks. |
+| **Phase 12: Advanced AI Engineering & Local LLMs** | Merges lexical BM25 with dense vector search (Hybrid RAG), enforces zero-hallucination JSON schema output, evaluates grounding (Ragas Judge), monitors vector drift (PSI/KS), and integrates local Ollama models. |
+
+---
+
+## 🌟 Recent AI Engineering Enhancements (Phase 12)
+
+The latest engineering update introduces 5 core production capabilities designed to solve real-world enterprise RAG precision, model drift, structural compliance, and air-gapped deployment challenges.
+
+### 🛠️ 1. What Have We Done?
+
+1. **Hybrid Search RAG Engine ([src/vector/hybrid.py](file:///Users/barankurtulusozan/hop/src/vector/hybrid.py))**:
+   - Combined Okapi BM25 sparse lexical search with dense vector embeddings via **Reciprocal Rank Fusion (RRF)**.
+2. **Grammar-Constrained Structured Output Engine ([src/agent/grammar.py](file:///Users/barankurtulusozan/hop/src/agent/grammar.py))**:
+   - Built a JSON schema & Pydantic output validation engine with automated syntax repair (cleaning code fences, repairing trailing commas/quotes).
+3. **Automated Ragas-Style LLM-as-a-Judge Evaluation Engine ([src/evals/judge.py](file:///Users/barankurtulusozan/hop/src/evals/judge.py))**:
+   - Implemented quantitative metrics for **Faithfulness** (hallucination index), **Answer Relevance**, and **Context Precision**.
+4. **Real-Time Embedding & Concept Drift Detection Engine ([src/observability/drift.py](file:///Users/barankurtulusozan/hop/src/observability/drift.py))**:
+   - Integrated **Population Stability Index (PSI)** and **Kolmogorov-Smirnov (KS)** two-sample test statistics for tracking query distribution shifts.
+5. **Ollama Local & Air-Gapped Engine Adapter ([src/adapters/ollama_adapter.py](file:///Users/barankurtulusozan/hop/src/adapters/ollama_adapter.py))**:
+   - Built a native, zero-dependency provider adapter supporting streaming SSE, fallback circuit breaking, and local open-weights inference (Llama 3.2, DeepSeek, Qwen).
+
+---
+
+### 🎯 2. What Was The Motive?
+
+* **RAG Retrieval Precision Gap**: Dense semantic vectors struggle with exact domain acronyms, part numbers, and code identifiers. Combining BM25 sparse keyword matching with vector similarity via RRF solves both semantic and exact lexical search.
+* **Eliminating LLM Structural Hallucinations**: Downstream microservices crash when LLMs return invalid JSON or missing schema keys. Constrained grammar validation auto-repairs minor syntax flaws and guarantees schema compliance.
+* **Continuous Quality & Grounding Assurance**: Production RAG requires automated detection of hallucinations and context noise without manual human evaluation.
+* **Proactive Model & Query Drift Alerts**: Semantic shift over time causes silent RAG degradation. Real-time PSI and KS metrics alert engineers before system accuracy degrades.
+* **Air-Gapped & Privacy Compliance**: Enterprise environments require local model execution via Ollama without leaking internal enterprise data to external APIs.
+
+---
+
+### 📈 3. What Is Improved on the Platform?
+
+| Capability Area | Before Phase 12 | After Phase 12 Improvement |
+| :--- | :--- | :--- |
+| **RAG Retrieval Accuracy** | Single dense vector search | **Hybrid Search (BM25 + Dense Vectors + RRF)** |
+| **Agent Output Reliability** | Raw text completion | **100% Valid JSON / Pydantic Schema Guarantee** |
+| **RAG Evaluation** | Basic exact match & cosine similarity | **Ragas Suite (Faithfulness, Relevance, Precision)** |
+| **Vector Space Observability** | Token counts & latency only | **Real-Time Embedding & Concept Drift (PSI & KS)** |
+| **Local Model Deployment** | OpenAI / Anthropic cloud APIs | **Native Ollama Local / Air-Gapped Integration** |
+| **Test Suite Coverage** | 73 / 73 passing tests | **95 / 95 passing tests (100% pass rate)** |
 
 ---
 
