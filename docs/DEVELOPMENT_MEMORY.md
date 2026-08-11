@@ -11,9 +11,9 @@
 | Phase | Description | Status | Review Artifact | Commit Hash |
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 1** | Hybrid Search RAG (BM25 + Dense Vector + RRF) | ✅ Completed | `docs/reviews/review_step_1.md` | `1969f85` |
-| **Phase 2** | Grammar-Constrained Decoding & Structured Output Engine | ✅ Completed | `docs/reviews/review_step_2.md` | `feat(agent): add grammar-constrained structured output engine` |
-| **Phase 3** | Ragas-Style Automated LLM-as-a-Judge Evaluation Engine | ⏳ In Progress | `docs/reviews/review_step_3.md` | Pending |
-| **Phase 4** | Real-Time Embedding & Concept Drift Detection Engine | ⏹️ Queued | `docs/reviews/review_step_4.md` | Pending |
+| **Phase 2** | Grammar-Constrained Decoding & Structured Output Engine | ✅ Completed | `docs/reviews/review_step_2.md` | `9572a1e` |
+| **Phase 3** | Ragas-Style Automated LLM-as-a-Judge Evaluation Engine | ✅ Completed | `docs/reviews/review_step_3.md` | `feat(evals): add Ragas-style LLM-as-a-Judge evaluation engine` |
+| **Phase 4** | Real-Time Embedding & Concept Drift Detection Engine | ⏳ In Progress | `docs/reviews/review_step_4.md` | Pending |
 | **Phase 5** | Ollama Local Engine Provider Adapter | ⏹️ Queued | `docs/reviews/review_step_5.md` | Pending |
 
 ---
