@@ -14,7 +14,7 @@
 | **Phase 2** | Grammar-Constrained Decoding & Structured Output Engine | ✅ Completed | `docs/reviews/review_step_2.md` | `9572a1e` |
 | **Phase 3** | Ragas-Style Automated LLM-as-a-Judge Evaluation Engine | ✅ Completed | `docs/reviews/review_step_3.md` | `fd8a4dd` |
 | **Phase 4** | Real-Time Embedding & Concept Drift Detection Engine | ✅ Completed | `docs/reviews/review_step_4.md` | `d899655` |
-| **Phase 5** | Ollama Local Engine Provider Adapter | ✅ Completed | `docs/reviews/review_step_5.md` | `feat(adapters): add Ollama local engine provider adapter` |
+| **Phase 5** | Ollama Local Engine Provider Adapter | ✅ Completed | `docs/reviews/review_step_5.md` | `30b6010` |
 
 ---
 
